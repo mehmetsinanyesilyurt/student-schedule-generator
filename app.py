@@ -66,4 +66,7 @@ def clear_schedule():
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # debug=False yapıyoruz çünkü Cloud ortamında 'reloader' hata verir.
+    # host='0.0.0.0' yapıyoruz ki sunucu dış dünyaya açılabilsin.
+    # port=5000 standarttır ama platforma göre değişebilir.
+    app.run(debug=False, host='0.0.0.0', port=5000)
