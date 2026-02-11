@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, jsonify, request, make_response
 from datetime import datetime
 
 app = Flask(__name__)
@@ -7,25 +7,20 @@ app = Flask(__name__)
 schedule_data = []
 
 def check_conflict(new_event):
-    """Çakışma Kontrolü: Aynı güne ve saate denk gelen ders var mı?"""
     new_start = datetime.strptime(new_event['startTime'], '%H:%M')
     new_end = datetime.strptime(new_event['endTime'], '%H:%M')
     new_day = str(new_event['dayOfWeek'])
 
     for event in schedule_data:
-        # FullCalendar veriyi 'daysOfWeek' listesi olarak tutar, string eşleşmesi yapıyoruz
         if new_day in event['daysOfWeek']:
             existing_start = datetime.strptime(event['startTime'], '%H:%M')
             existing_end = datetime.strptime(event['endTime'], '%H:%M')
-
-            # (Yeni Başlangıç < Eski Bitiş) VE (Yeni Bitiş > Eski Başlangıç)
             if (new_start < existing_end) and (new_end > existing_start):
                 return True 
     return False
 
-# --- ARAYÜZ (FRONTEND - HTML/CSS/JS) ---
-# Senin attığın HTML kodunu buraya gömüyoruz:
-HTML_TEMPLATE = """
+# --- DÜZELTİLMİŞ HTML (Kavga Çıkarmayan) ---
+HTML_CONTENT = """
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -116,11 +111,14 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# --- ROTALAR (ROUTES) ---
+# --- ROTALAR (FIX) ---
 @app.route('/')
 def index():
-    # Dosya okumak yerine yukarıdaki string değişkeni basıyoruz
-    return render_template_string(HTML_TEMPLATE)
+    # render_template_string YERİNE doğrudan string'i response olarak dönüyoruz.
+    # Böylece Flask HTML içindeki JS kodlarına dokunmuyor.
+    response = make_response(HTML_CONTENT)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
 
 @app.route('/api/events', methods=['GET'])
 def get_events():
@@ -140,7 +138,7 @@ def add_event():
             'title': data['title'],
             'startTime': data['startTime'],
             'endTime': data['endTime'],
-            'daysOfWeek': [data['dayOfWeek']], # FullCalendar formatı
+            'daysOfWeek': [data['dayOfWeek']], 
             'color': '#3B82F6'
         }
         schedule_data.append(new_event)
@@ -155,5 +153,5 @@ def clear_schedule():
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
-    # Streamlit/Render gibi yerlerde çalışması için bu ayar şart:
+    # Hata ayıklama modunu kapattık ki Cloud ortamında çökmesin
     app.run(debug=False, host='0.0.0.0', port=5000)
